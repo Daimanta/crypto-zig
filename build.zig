@@ -14,7 +14,8 @@ pub fn build(b: *std.build.Builder) void {
     lib.install();
     
     var main_tests = b.addTest("src/gost.zig");
-    _ = b.addTest("src/has160.zig");
+    main_tests = b.addTest("src/has160.zig");
+    main_tests = b.addTest("src/md4.zig");
     main_tests.setBuildMode(mode);
     
     const test_step = b.step("test", "Run library tests");
