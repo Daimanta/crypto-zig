@@ -20,7 +20,7 @@ const HASH_U32_SIZE = 8;
 const HASH_BYTE_SIZE = HASH_U32_SIZE * 4;
 const HASH_BIT_SIZE = HASH_BYTE_SIZE * 8;
 
-const GostHashCtx = struct {
+pub const GostHashCtx = struct {
     sum: [SUM_INT_WIDTH]u32,
     hash: [SUM_INT_WIDTH]u32,
     len: [SUM_INT_WIDTH]u32,

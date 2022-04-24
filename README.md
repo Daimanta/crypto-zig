@@ -6,3 +6,4 @@ The hash functions are:
 - GOST
 - HAS160
 - MD4
+- Snefru

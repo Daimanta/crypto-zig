@@ -12,7 +12,7 @@ const HASH_SIZE = 20;
 const MESSAGE_UNITS = BLOCK_SIZE / @sizeOf(u32);
 const HASH_UNITS = HASH_SIZE / @sizeOf(u32);
 
-const Has160 = struct {
+pub const Has160 = struct {
     partial: [BLOCK_SIZE]u8,
     partial_bytes: usize,
     hash: [HASH_UNITS]u32,

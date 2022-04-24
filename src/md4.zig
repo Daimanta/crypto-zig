@@ -8,7 +8,7 @@ const HASH_SIZE = 16;
 const MESSAGE_UNITS = BLOCK_SIZE / @sizeOf(u32);
 const HASH_UNITS = HASH_SIZE / @sizeOf(u32);
 
-const Md4 = struct {
+pub const Md4 = struct {
     partial: [BLOCK_SIZE]u8,
     partial_bytes: usize,
     hash: [HASH_UNITS]u32,
