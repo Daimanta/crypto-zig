@@ -19,6 +19,8 @@ pub const HashType = enum(u16) {
 const roundconstant_zero: [64]u4 = .{0x6,0xa,0x0,0x9,0xe,0x6,0x6,0x7,0xf,0x3,0xb,0xc,0xc,0x9,0x0,0x8,0xb,0x2,0xf,0xb,0x1,0x3,0x6,0x6,0xe,0xa,0x9,0x5,0x7,0xd,0x3,0xe,0x3,0xa,0xd,0xe,0xc,0x1,0x7,0x5,0x1,0x2,0x7,0x7,0x5,0x0,0x9,0x9,0xd,0xa,0x2,0xf,0x5,0x9,0x0,0xb,0x0,0x6,0x6,0x7,0x3,0x2,0x2,0xa};
 const S: [2][16]u4 = .{.{9,0,4,11,13,12,3,15,1,10,2,6,7,5,8,14}, .{3,12,6,13,5,7,1,9,15,2,0,4,11,10,14,8}};
 
+const buffer_size: u64 = 64;
+
 pub const JH = struct {
     hash_type: HashType,
     databitlen: u64,
@@ -26,7 +28,7 @@ pub const JH = struct {
     H: [128]u8,
     A: [256]u4,
     roundconstant: [64]u4,
-    buffer: [64]u8,
+    buffer: [buffer_size]u8,
 
     const Self = @This();
 
@@ -38,49 +40,55 @@ pub const JH = struct {
 
     
     pub fn update(self: *Self, buf: []const u8) void {
-        _ = self; _ = buf;
+        const message_length = buf.len;
+        
+        self.databitlen += message_length;
+        
+        if (self.datasize_in_buffer + message_length < buffer_size) {
+            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            self.datasize_in_buffer += message_length;
+        } else if (self.datasize_in_buffer + message_length == buffer_size) {
+            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            self.F8();
+            self.datasize_in_buffer = 0;
+        } else {
+            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            self.F8();
+            var buf_start: u64 = 64 - self.datasize_in_buffer;
+            self.datasize_in_buffer = 0;
+            while (buf_start + buffer_size < message_length): (buf_start += buffer_size) {
+                mem.copy(u8, self.buffer[0..], buf[buf_start..buf_start + buffer_size]);
+                self.F8();
+            }
+            const buffer_remaining = message_length - buf_start;
+            self.datasize_in_buffer = buffer_remaining;
+            mem.copy(u8, self.buffer[0..], buf[buf_start..]);
+        }
         
     }
     
     pub fn make_final(self: *Self, digest: *[128]u8) []u8 {
-        if (self.databitlen % 512 == 0) {
+        const bit_length = self.databitlen * 8;
+        if (self.datasize_in_buffer == 0) {
             self.buffer = .{0} ** 64;
             self.buffer[0] = 0x80;
-            self.buffer[63] = @truncate(u8, self.databitlen);
-            self.buffer[62] = @truncate(u8,(self.databitlen >> 8));
-            self.buffer[61] = @truncate(u8,(self.databitlen >> 16));
-            self.buffer[60] = @truncate(u8,(self.databitlen >> 24));
-            self.buffer[59] = @truncate(u8,(self.databitlen >> 32));
-            self.buffer[58] = @truncate(u8,(self.databitlen >> 40));
-            self.buffer[57] = @truncate(u8,(self.databitlen >> 48));
-            self.buffer[56] = @truncate(u8,(self.databitlen >> 56));
+            var i: usize = 63;
+            while (i >= 56): ( i -= 1) {
+                self.buffer[i] = @truncate(u8, bit_length >> @intCast(u6, (63 - i)*8));
+            }
             
             self.F8();
         } else {
-            var i: usize = (self.databitlen % 512) >> 3;
-            if (self.datasize_in_buffer % 8 != 0) {
-                i += 1;
-            }
-            
-            while (i < 64): (i += 1) {
-                self.buffer[i] = 0;
-            }
-            self.buffer[(self.databitlen % 512) >> 3] |= @as(u8, 1) << @intCast(u3, 7 - (self.databitlen % 8));
+            mem.set(u8, self.buffer[self.datasize_in_buffer..], 0);
+            self.buffer[self.datasize_in_buffer] |= 1 << 7;
             
             self.F8();
-            i = 0;
-            while (i < 64): (i += 1) {
-                self.buffer[i] = 0;
-            }
+            self.buffer = .{0} ** 64;
             
-            self.buffer[63] = @truncate(u8, self.databitlen);
-            self.buffer[62] = @truncate(u8,(self.databitlen >> 8));
-            self.buffer[61] = @truncate(u8,(self.databitlen >> 16));
-            self.buffer[60] = @truncate(u8,(self.databitlen >> 24));
-            self.buffer[59] = @truncate(u8,(self.databitlen >> 32));
-            self.buffer[58] = @truncate(u8,(self.databitlen >> 40));
-            self.buffer[57] = @truncate(u8,(self.databitlen >> 48));
-            self.buffer[56] = @truncate(u8,(self.databitlen >> 56));
+            var j: usize = 63;
+            while (j >= 56): ( j -= 1) {
+                self.buffer[j] = @truncate(u8, bit_length >> @intCast(u6, (63 - j)*8));
+            }
             self.F8();
         }
         
@@ -304,11 +312,15 @@ fn output_512(hash: []u8, string: *[128]u8) void {
     }
 }
 
+const TextPair = struct {
+    first: []const u8,
+    second: []const u8,
+};
+
 test "empty string 224" {
     var input: [128]u8 = .{0} ** 128;
     var processor = JH.init(HashType.HASH_224);
     const result = processor.make_final(&input);
-    _ = result;
     
     var string: [56]u8 = undefined;
     output_224(result, &string);
@@ -321,7 +333,6 @@ test "empty string 256" {
     var input: [128]u8 = .{0} ** 128;
     var processor = JH.init(HashType.HASH_256);
     const result = processor.make_final(&input);
-    _ = result;
     
     var string: [64]u8 = undefined;
     output_256(result, &string);
@@ -334,7 +345,6 @@ test "empty string 384" {
     var input: [128]u8 = .{0} ** 128;
     var processor = JH.init(HashType.HASH_384);
     const result = processor.make_final(&input);
-    _ = result;
     
     var string: [96]u8 = undefined;
     output_384(result, &string);
@@ -347,7 +357,6 @@ test "empty string 512" {
     var input: [128]u8 = .{0} ** 128;
     var processor = JH.init(HashType.HASH_512);
     const result = processor.make_final(&input);
-    _ = result;
     
     var string: [128]u8 = undefined;
     output_512(result, &string);
@@ -356,4 +365,23 @@ test "empty string 512" {
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
 
-
+test "224 test strings" {
+    var maps: [2]TextPair = .{
+        TextPair{.first = "The quick brown fox jumps over the lazy dog", .second = "6a049fed5fc6874acfdc4a08b568a4f8cbac27de933496f031015b38961608a0"}, 
+        TextPair{.first = "The quick brown fox jumps over the lazy dog.", .second = "d001ae2315421c5d3272bac4f4aa524bddd207530d5d26bbf51794f0da18fafc"}
+    };
+    
+    for (maps) |pair| {
+        var input: [128]u8 = .{0} ** 128;
+        var processor = JH.init(HashType.HASH_256);
+        processor.update(pair.first);
+        const result = processor.make_final(&input);
+        
+        var string: [64]u8 = undefined;
+        output_256(result, &string);
+        
+        try testing.expectEqualSlices(u8, pair.second[0..], string[0..]);
+    }
+    
+    
+}
