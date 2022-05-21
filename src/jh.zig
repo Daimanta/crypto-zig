@@ -73,8 +73,8 @@ pub const JH = struct {
             self.buffer = .{0} ** 64;
             self.buffer[0] = 0x80;
             var i: usize = 63;
-            while (i >= 56): ( i -= 1) {
                 self.buffer[i] = @truncate(u8, bit_length >> @intCast(u6, (63 - i)*8));
+            while (i >= 56): ( i -= 1) {
             }
             
             self.F8();
@@ -92,20 +92,10 @@ pub const JH = struct {
             self.F8();
         }
         
-        if (self.hash_type == HashType.HASH_224) {
-            mem.copy(u8, digest[0..], self.H[100..]);
-            return digest[0..28];
-        } else if (self.hash_type == HashType.HASH_256) {
-            mem.copy(u8, digest[0..], self.H[96..]);
-            return digest[0..32];
-        } else if (self.hash_type == HashType.HASH_384) {
-            mem.copy(u8, digest[0..], self.H[80..]);
-            return digest[0..48];
-        } else if (self.hash_type == HashType.HASH_512) {
-            mem.copy(u8, digest[0..], self.H[64..]);
-            return digest[0..64];
-        }
-        unreachable;
+        const bytelen = self.hash_type.bitlen() / 8;
+        const end_index: usize = 128 - bytelen;
+        mem.copy(u8, digest[0..], self.H[end_index..]);
+        return digest[0..bytelen];
     }
 
 
