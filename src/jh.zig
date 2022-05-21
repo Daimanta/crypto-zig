@@ -73,8 +73,8 @@ pub const JH = struct {
             self.buffer = .{0} ** 64;
             self.buffer[0] = 0x80;
             var i: usize = 63;
-                self.buffer[i] = @truncate(u8, bit_length >> @intCast(u6, (63 - i)*8));
             while (i >= 56): ( i -= 1) {
+                self.buffer[i] = @truncate(u8, bit_length >> @intCast(u6, (63 - i)*8));
             }
             
             self.F8();
