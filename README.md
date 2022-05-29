@@ -8,3 +8,4 @@ The hash functions are:
 - JH
 - MD4
 - Snefru
+- Tiger
