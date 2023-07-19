@@ -39,41 +39,41 @@ pub const Has160 = struct {
             self.process_partials();
             const remaining_in_buffer = buf.len - taken_from_buffer;
             if (remaining_in_buffer > 0) {
-                const taken = (remaining_in_buffer/BLOCK_SIZE)*BLOCK_SIZE;
-                const units = taken/4;
-                var block_slice: []align(1) const u32 = mem.bytesAsSlice(u32, buf[taken_from_buffer..taken_from_buffer+taken]);
+                const taken = (remaining_in_buffer / BLOCK_SIZE) * BLOCK_SIZE;
+                const units = taken / 4;
+                var block_slice: []align(1) const u32 = mem.bytesAsSlice(u32, buf[taken_from_buffer .. taken_from_buffer + taken]);
                 var i: usize = 0;
-                while (i*MESSAGE_UNITS < units): (i += 1) {
-                    var fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i*MESSAGE_UNITS..(i+1)*MESSAGE_UNITS][0..MESSAGE_UNITS].*;
+                while (i * MESSAGE_UNITS < units) : (i += 1) {
+                    var fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
                     self.process_block(fixed_size_block);
                 }
-                mem.copy(u8, self.partial[0..], buf[taken_from_buffer+taken..]);
-                self.partial_bytes = remaining_in_buffer-taken;
+                mem.copy(u8, self.partial[0..], buf[taken_from_buffer + taken ..]);
+                self.partial_bytes = remaining_in_buffer - taken;
             } else {
                 self.partial_bytes = 0;
             }
         }
     }
-    
+
     pub fn make_final(self: *Self, digest: *[HASH_UNITS]u32) void {
-        var ints: *[MESSAGE_UNITS]u32 = mem.bytesAsSlice( u32, @alignCast(4, self.partial[0..]))[0..16];
-        
-        const shift: u5 = @truncate(u5, (self.length % 4) * 8);
+        var ints: *[MESSAGE_UNITS]u32 = mem.bytesAsSlice(u32, @as([]align(4) u8, @alignCast(self.partial[0..])))[0..16];
+
+        const shift: u5 = @as(u5, @truncate((self.length % 4) * 8));
         var index = (self.length % BLOCK_SIZE) / 4;
-        
+
         ints[index] &= ~(@as(u32, std.math.maxInt(u32)) << shift);
         ints[index] ^= @as(u32, 0x80) << shift;
         index += 1;
-        
+
         if (index > 14) {
-            mem.set(u32, ints[index..], 0);
+            @memset(ints[index..], 0);
             self.process_partials();
             index = 0;
         }
-        
-        mem.set(u32, ints[index..14], 0);
-        ints[14] = @truncate(u32, self.length << 3);
-        ints[15] = @truncate(u32, self.length >> 29);
+
+        @memset(ints[index..14], 0);
+        ints[14] = @as(u32, @truncate(self.length << 3));
+        ints[15] = @as(u32, @truncate(self.length >> 29));
         self.process_partials();
         mem.copy(u32, digest[0..], self.hash[0..]);
     }
@@ -88,14 +88,14 @@ pub const Has160 = struct {
     pub fn reset(self: *Self) void {
         self.partial = [1]u8{0} ** BLOCK_SIZE;
         self.length = 0;
-        self.hash = .{0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
+        self.hash = .{ 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 };
         self.partial_bytes = 0;
     }
-    
+
     fn process_partials(self: *Self) void {
-        self.process_block(mem.bytesAsSlice(u32, @alignCast(@sizeOf(u32), self.partial[0..]))[0..MESSAGE_UNITS].*);
+        self.process_block(mem.bytesAsSlice(u32, @as([]align(4) u8, @alignCast(self.partial[0..])))[0..MESSAGE_UNITS].*);
     }
-    
+
     fn process_block(self: *Self, block: [MESSAGE_UNITS]u32) void {
         var X: [32]u32 = undefined;
         {
@@ -247,7 +247,7 @@ fn STEP_F4(A: *u32, B: *u32, C: *u32, D: *u32, E: *u32, msg: u32, rot: u4) void 
 
 fn rotl32(dword: u32, n: u5) u32 {
     if (n == 0) return dword;
-    const remaining_shift: u5 = @truncate(u5, 32 - @as(u6, n));
+    const remaining_shift: u5 = @as(u5, @truncate(32 - @as(u6, n)));
     return (dword) << n ^ (dword >> remaining_shift);
 }
 
@@ -259,20 +259,18 @@ fn digest_to_hex_string(digest: *[HASH_UNITS]u32, string: *[2 * HASH_SIZE]u8) vo
         const digest_val = digest[i];
         var my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
         _ = std.fmt.bufPrintIntToSlice(string[start..end], my_num, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
-        
     }
 }
 
 test "empty string" {
     var result: [HASH_UNITS]u32 = undefined;
     var processor = Has160.init();
-    
+
     processor.make_final(&result);
-    
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "307964EF34151D37C8047ADEC7AB50F4FF89762D";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -282,10 +280,10 @@ test "'a'" {
     var processor = Has160.init();
     processor.update("a");
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "4872BCBC4CD0F0A9DC7C2F7045E5B43B6C830DB8";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -295,10 +293,10 @@ test "'a' as slice" {
     processor.update("a");
     const allocator = std.heap.page_allocator;
     var result = try processor.make_final_slice(allocator);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(result, &string);
-    
+
     const expected: []const u8 = "4872BCBC4CD0F0A9DC7C2F7045E5B43B6C830DB8";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -308,10 +306,10 @@ test "'abc'" {
     var processor = Has160.init();
     processor.update("abc");
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "975E810488CF2A3D49838478124AFCE4B1C78804";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -321,10 +319,10 @@ test "'message digest'" {
     var processor = Has160.init();
     processor.update("message digest");
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "2338DBC8638D31225F73086246BA529F96710BC6";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -334,10 +332,10 @@ test "'abcdefghijklmnopqrstuvwxyz'" {
     var processor = Has160.init();
     processor.update("abcdefghijklmnopqrstuvwxyz");
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "596185C9AB6703D0D0DBB98702BC0F5729CD1D3C";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -347,10 +345,10 @@ test "'The quick brown fox jumps over the lazy dog'" {
     var processor = Has160.init();
     processor.update("The quick brown fox jumps over the lazy dog");
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "ABE2B8C711F9E8579AA8EB40757A27B4EF14A7EA";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -360,10 +358,10 @@ test "'1234567890' ** 8" {
     var processor = Has160.init();
     processor.update("1234567890" ** 8);
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "07F05C8C0773C55CA3A5A695CE6ACA4C438911B5";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -374,10 +372,10 @@ test "'1234567890' ** 8 piecewise" {
     processor.update("1234567890" ** 4);
     processor.update("1234567890" ** 4);
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "07F05C8C0773C55CA3A5A695CE6ACA4C438911B5";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
@@ -387,10 +385,10 @@ test "'a' ** 1_000_000" {
     var processor = Has160.init();
     processor.update("a" ** 1_000_000);
     processor.make_final(&result);
-    
+
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(&result, &string);
-    
+
     const expected: []const u8 = "D6AD6F0608B878DA9B87999C2525CC84F4C9F18D";
     try testing.expectEqualSlices(u8, expected[0..], string[0..]);
 }
