@@ -4,20 +4,20 @@ const builtin = std.builtin;
 
 pub fn build(b: *std.build.Builder) void {
 
-    b.setPreferredReleaseMode(builtin.Mode.ReleaseSafe);
-    const mode = b.standardReleaseOptions();
-    
+    const lib = b.addStaticLibrary(.{
+        .name = "hashes",
+        .root_source_file = .{.path = "src/std.zig"},
+        .optimize = .ReleaseSafe,
+        .version = .{.major = version.major, .minor = version.minor, .patch = version.patch},
+        .target = .{}
+        });
+        b.installArtifact(lib);
 
-    const lib = b.addStaticLibrary("crypto", "src/std.zig");
-    _ = b.version(version.major, version.minor, version.patch);
-    lib.setBuildMode(mode);
-    lib.install();
-    
-    var main_tests = b.addTest("src/gost.zig");
-    main_tests = b.addTest("src/has160.zig");
-    main_tests = b.addTest("src/md4.zig");
-    main_tests.setBuildMode(mode);
-    
+
+    var main_tests = b.addTest(.{ .root_source_file = .{ .path = "src/gost.zig"}});
+    _ = b.addTest(.{ .root_source_file = .{ .path = "src/has160.zig"}});
+    _ = b.addTest(.{ .root_source_file = .{ .path = "src/md4.zig"}});
+
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
 }
