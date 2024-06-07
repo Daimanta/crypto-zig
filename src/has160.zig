@@ -44,7 +44,7 @@ pub const Has160 = struct {
                 var block_slice: []align(1) const u32 = mem.bytesAsSlice(u32, buf[taken_from_buffer .. taken_from_buffer + taken]);
                 var i: usize = 0;
                 while (i * MESSAGE_UNITS < units) : (i += 1) {
-                    var fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
+                    const fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
                     self.process_block(fixed_size_block);
                 }
                 mem.copy(u8, self.partial[0..], buf[taken_from_buffer + taken ..]);
@@ -80,7 +80,7 @@ pub const Has160 = struct {
 
     // Returns a slice owned by the caller
     pub fn make_final_slice(self: *Self, allocator: Allocator) !*[HASH_UNITS]u32 {
-        var result: *[HASH_UNITS]u32 = try allocator.create([HASH_UNITS]u32);
+        const result: *[HASH_UNITS]u32 = try allocator.create([HASH_UNITS]u32);
         self.make_final(result);
         return result;
     }
@@ -127,11 +127,11 @@ pub const Has160 = struct {
         var c = self.hash[2];
         var d = self.hash[3];
         var e = self.hash[4];
-        var A = &a;
-        var B = &b;
-        var C = &c;
-        var D = &d;
-        var E = &e;
+        const A = &a;
+        const B = &b;
+        const C = &c;
+        const D = &d;
+        const E = &e;
 
         STEP_F1(A, B, C, D, E, X[18], 5);
         STEP_F1(E, A, B, C, D, X[0], 11);
@@ -257,7 +257,7 @@ fn digest_to_hex_string(digest: *[HASH_UNITS]u32, string: *[2 * HASH_SIZE]u8) vo
         const start = i * 8;
         const end = start + 8;
         const digest_val = digest[i];
-        var my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
+        const my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
         _ = std.fmt.bufPrintIntToSlice(string[start..end], my_num, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
     }
 }
@@ -292,7 +292,7 @@ test "'a' as slice" {
     var processor = Has160.init();
     processor.update("a");
     const allocator = std.heap.page_allocator;
-    var result = try processor.make_final_slice(allocator);
+    const result = try processor.make_final_slice(allocator);
 
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(result, &string);

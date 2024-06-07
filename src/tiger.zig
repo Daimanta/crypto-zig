@@ -57,7 +57,7 @@ pub const Tiger = struct {
         var index = self.datasize_in_buffer;
         var msg64 = mem.bytesAsSlice(u64, self.buffer[0..]);
 
-        var set_byte: u8 = if (self.tiger_2) 0x80 else 0x01;
+        const set_byte: u8 = if (self.tiger_2) 0x80 else 0x01;
         self.buffer[index] = set_byte;
         index += 1;
         if (index > 56) {
@@ -147,7 +147,7 @@ fn output_hash(comptime length: u8, hash: [length]u8, string: *[2 * length]u8) v
     const array = "0123456789abcdef";
     var i: usize = 0;
     while (i < 2 * length) : (i += 2) {
-        var j = i / 2;
+        const j = i / 2;
         string[i] = array[@as(u4, @truncate(hash[j] >> 4))];
         string[i + 1] = array[@as(u4, @truncate(hash[j]))];
     }
@@ -175,7 +175,7 @@ test "empty string" {
 }
 
 test "test strings" {
-    var maps: [2]TextPair = .{ TextPair{ .first = "The quick brown fox jumps over the lazy dog", .second = "6d12a41e72e644f017b6f0e2f7b44c6285f06dd5d2c5b075" }, TextPair{ .first = "The quick brown fox jumps over the lazy cog", .second = "a8f04b0f7201a0d728101c9d26525b31764a3493fcd8458f" } };
+    const maps: [2]TextPair = .{ TextPair{ .first = "The quick brown fox jumps over the lazy dog", .second = "6d12a41e72e644f017b6f0e2f7b44c6285f06dd5d2c5b075" }, TextPair{ .first = "The quick brown fox jumps over the lazy cog", .second = "a8f04b0f7201a0d728101c9d26525b31764a3493fcd8458f" } };
 
     for (maps) |pair| {
         var input: [hash_bytes]u8 = .{0} ** hash_bytes;

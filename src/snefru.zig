@@ -42,7 +42,7 @@ const SnefruShared = struct {
         var buf_start: usize = 0;
         if (self.partial_bytes > 0) {
             const left = data_block_size - self.partial_bytes;
-            var take = if (to_process < left) to_process else left;
+            const take = if (to_process < left) to_process else left;
             mem.copy(u8, self.partial[self.partial_bytes .. self.partial_bytes + take], buf[0..take]);
             if (to_process < left) {
                 self.partial_bytes += to_process;
@@ -229,7 +229,7 @@ fn be2me_32(input: u32) u32 {
 }
 
 fn bswap_32(input: u32) u32 {
-    var result = ((input << 8) & 0xFF00FF00) | ((input >> 8) & 0x00FF00FF);
+    const result = ((input << 8) & 0xFF00FF00) | ((input >> 8) & 0x00FF00FF);
     return (result >> 16) | (result << 16);
 }
 
@@ -308,7 +308,7 @@ test "'a' as slice 128" {
     var processor = Snefru128.init();
     processor.update("a");
     const allocator = std.heap.page_allocator;
-    var result = try processor.make_final_slice(allocator);
+    const result = try processor.make_final_slice(allocator);
 
     var string: [HASH_STRING_SIZE_128]u8 = undefined;
     digest_to_hex_string_128(result, &string);
@@ -334,7 +334,7 @@ test "'a' as slice 256" {
     var processor = Snefru256.init();
     processor.update("a");
     const allocator = std.heap.page_allocator;
-    var result = try processor.make_final_slice(allocator);
+    const result = try processor.make_final_slice(allocator);
 
     var string: [HASH_STRING_SIZE_256]u8 = undefined;
     digest_to_hex_string_256(result, &string);

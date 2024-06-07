@@ -36,7 +36,7 @@ pub const GostHashCtx = struct {
     pub fn update(self: *Self, buf: []const u8) void {
         var i: usize = self.partial_bytes;
         var j: usize = 0;
-        var len: usize = buf.len;
+        const len: usize = buf.len;
         while (i < 32 and j < len) {
             self.partial[i] = buf[j];
             i += 1;
@@ -96,7 +96,7 @@ pub const GostHashCtx = struct {
     // Returns a slice owned by the caller
     pub fn make_final_slice(self: *Self, allocator: Allocator) !*[HASH_BYTE_SIZE]u8 {
         var slice = try allocator.alloc(u8, HASH_BYTE_SIZE);
-        var pointer: *[HASH_BYTE_SIZE]u8 = slice[0..HASH_BYTE_SIZE];
+        const pointer: *[HASH_BYTE_SIZE]u8 = slice[0..HASH_BYTE_SIZE];
         make_final(self, pointer);
         return pointer;
     }
@@ -373,11 +373,11 @@ fn gosthash_bytes(ctx: *GostHashCtx, buf: []const u8, bits: usize) void {
 }
 
 fn digest_to_hex_string(digest: *[HASH_BYTE_SIZE]u8, string: *[2 * HASH_BYTE_SIZE]u8) void {
-    var range: [16]u8 = .{ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    const range: [16]u8 = .{ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
     var i: usize = 0;
     while (i < digest.len) : (i += 1) {
-        var upper: u8 = digest[i] >> 4;
-        var lower: u8 = digest[i] & 15;
+        const upper: u8 = digest[i] >> 4;
+        const lower: u8 = digest[i] & 15;
 
         string[2 * i] = range[upper];
         string[(2 * i) + 1] = range[lower];
@@ -397,7 +397,7 @@ test "empty string" {
     gosthash_init();
     var hash_struct: GostHashCtx = GostHashCtx.init();
 
-    var empty_block: []u8 = &.{};
+    const empty_block: []u8 = &.{};
     hash_struct.update(empty_block);
 
     var digest: [32]u8 = .{0} ** 32;
@@ -557,7 +557,7 @@ test "create digest by allocator" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var digest = try hash_struct.make_final_slice(allocator);
+    const digest = try hash_struct.make_final_slice(allocator);
     var hash_string: [64]u8 = undefined;
     digest_to_hex_string(digest, &hash_string);
     const expected: []const u8 = "d42c539e367c66e9c88a801f6649349c21871b4344c6a573f849fdce62f314dd";

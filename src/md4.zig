@@ -40,7 +40,7 @@ pub const Md4 = struct {
                 var block_slice: []align(1) const u32 = mem.bytesAsSlice(u32, buf[taken_from_buffer .. taken_from_buffer + taken]);
                 var i: usize = 0;
                 while (i * MESSAGE_UNITS < units) : (i += 1) {
-                    var fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
+                    const fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
                     self.process_block(fixed_size_block);
                 }
                 mem.copy(u8, self.partial[0..], buf[taken_from_buffer + taken ..]);
@@ -52,9 +52,9 @@ pub const Md4 = struct {
     }
 
     pub fn make_final(self: *Self, digest: *[HASH_UNITS]u32) void {
-        var ints: *[MESSAGE_UNITS]u32 = mem.bytesAsSlice(u32, @alignCast(4, self.partial[0..]))[0..16];
+        var ints: *[MESSAGE_UNITS]u32 = mem.bytesAsSlice(u32, @alignCast(self.partial[0..]))[0..16];
 
-        const shift: u5 = @truncate(u5, (self.length % 4) * 8);
+        const shift: u5 = @truncate((self.length % 4) * 8);
         var index = (self.length % BLOCK_SIZE) / 4;
 
         ints[index] &= ~(@as(u32, std.math.maxInt(u32)) << shift);
@@ -68,15 +68,15 @@ pub const Md4 = struct {
         }
 
         mem.set(u32, ints[index..14], 0);
-        ints[14] = @truncate(u32, self.length << 3);
-        ints[15] = @truncate(u32, self.length >> 29);
+        ints[14] = @truncate(self.length << 3);
+        ints[15] = @truncate(self.length >> 29);
         self.process_partials();
         mem.copy(u32, digest[0..], self.hash[0..]);
     }
 
     // Returns a slice owned by the caller
     pub fn make_final_slice(self: *Self, allocator: Allocator) !*[HASH_UNITS]u32 {
-        var result: *[HASH_UNITS]u32 = try allocator.create([HASH_UNITS]u32);
+        const result: *[HASH_UNITS]u32 = try allocator.create([HASH_UNITS]u32);
         self.make_final(result);
         return result;
     }
@@ -89,7 +89,7 @@ pub const Md4 = struct {
     }
 
     fn process_partials(self: *Self) void {
-        self.process_block(mem.bytesAsSlice(u32, @alignCast(@sizeOf(u32), self.partial[0..]))[0..MESSAGE_UNITS].*);
+        self.process_block(mem.bytesAsSlice(u32, @alignCast(self.partial[0..]))[0..MESSAGE_UNITS].*);
     }
 
     fn process_block(self: *Self, block: [MESSAGE_UNITS]u32) void {
@@ -98,11 +98,11 @@ pub const Md4 = struct {
         var C = self.hash[2];
         var D = self.hash[3];
 
-        var a = &A;
-        var b = &B;
-        var c = &C;
-        var d = &D;
-        var x = block;
+        const a = &A;
+        const b = &B;
+        const c = &C;
+        const d = &D;
+        const x = block;
 
         MD4_ROUND1(a, b, c, d, x[0], 3);
         MD4_ROUND1(d, a, b, c, x[1], 7);
@@ -191,7 +191,7 @@ fn MD4_ROUND3(a: *u32, b: *u32, c: *u32, d: *u32, x: u32, s: u5) void {
 
 fn rotl32(dword: u32, n: u5) u32 {
     if (n == 0) return dword;
-    const remaining_shift: u5 = @truncate(u5, 32 - @as(u6, n));
+    const remaining_shift: u5 = @truncate(32 - @as(u6, n));
     return (dword) << n ^ (dword >> remaining_shift);
 }
 
@@ -201,7 +201,7 @@ fn digest_to_hex_string(digest: *[HASH_UNITS]u32, string: *[2 * HASH_SIZE]u8) vo
         const start = i * 8;
         const end = start + 8;
         const digest_val = digest[i];
-        var my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
+        const my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
         _ = std.fmt.bufPrintIntToSlice(string[start..end], my_num, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
     }
 }
@@ -236,7 +236,7 @@ test "'a' as slice" {
     var processor = Md4.init();
     processor.update("a");
     const allocator = std.heap.page_allocator;
-    var result = try processor.make_final_slice(allocator);
+    const result = try processor.make_final_slice(allocator);
 
     var string: [2 * HASH_SIZE]u8 = undefined;
     digest_to_hex_string(result, &string);

@@ -262,7 +262,7 @@ fn output_224(hash: []u8, string: *[56]u8) void {
     const array = "0123456789abcdef";
     var i: usize = 0;
     while (i < 56) : (i += 2) {
-        var j = i / 2;
+        const j = i / 2;
         string[i] = array[@as(u4, @truncate(hash[j] >> 4))];
         string[i + 1] = array[@as(u4, @truncate(hash[j]))];
     }
@@ -272,7 +272,7 @@ fn output_256(hash: []u8, string: *[64]u8) void {
     const array = "0123456789abcdef";
     var i: usize = 0;
     while (i < 64) : (i += 2) {
-        var j = i / 2;
+        const j = i / 2;
         string[i] = array[@as(u4, @truncate(hash[j] >> 4))];
         string[i + 1] = array[@as(u4, @truncate(hash[j]))];
     }
@@ -282,7 +282,7 @@ fn output_384(hash: []u8, string: *[96]u8) void {
     const array = "0123456789abcdef";
     var i: usize = 0;
     while (i < 96) : (i += 2) {
-        var j = i / 2;
+        const j = i / 2;
         string[i] = array[@as(u4, @truncate(hash[j] >> 4))];
         string[i + 1] = array[@as(u4, @truncate(hash[j]))];
     }
@@ -292,7 +292,7 @@ fn output_512(hash: []u8, string: *[128]u8) void {
     const array = "0123456789abcdef";
     var i: usize = 0;
     while (i < 128) : (i += 2) {
-        var j = i / 2;
+        const j = i / 2;
         string[i] = array[@as(u4, @truncate(hash[j] >> 4))];
         string[i + 1] = array[@as(u4, @truncate(hash[j]))];
     }
@@ -352,7 +352,7 @@ test "empty string 512" {
 }
 
 test "224 test strings" {
-    var maps: [2]TextPair = .{ TextPair{ .first = "The quick brown fox jumps over the lazy dog", .second = "6a049fed5fc6874acfdc4a08b568a4f8cbac27de933496f031015b38961608a0" }, TextPair{ .first = "The quick brown fox jumps over the lazy dog.", .second = "d001ae2315421c5d3272bac4f4aa524bddd207530d5d26bbf51794f0da18fafc" } };
+    const maps: [2]TextPair = .{ TextPair{ .first = "The quick brown fox jumps over the lazy dog", .second = "6a049fed5fc6874acfdc4a08b568a4f8cbac27de933496f031015b38961608a0" }, TextPair{ .first = "The quick brown fox jumps over the lazy dog.", .second = "d001ae2315421c5d3272bac4f4aa524bddd207530d5d26bbf51794f0da18fafc" } };
 
     for (maps) |pair| {
         var input: [128]u8 = .{0} ** 128;
