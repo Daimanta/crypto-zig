@@ -43,7 +43,7 @@ const SnefruShared = struct {
         if (self.partial_bytes > 0) {
             const left = data_block_size - self.partial_bytes;
             const take = if (to_process < left) to_process else left;
-            mem.copy(u8, self.partial[self.partial_bytes .. self.partial_bytes + take], buf[0..take]);
+            @memcpy(self.partial[self.partial_bytes .. self.partial_bytes + take], buf[0..take]);
             if (to_process < left) {
                 self.partial_bytes += to_process;
                 return;
@@ -53,7 +53,7 @@ const SnefruShared = struct {
             to_process -= left;
         }
         while (to_process >= data_block_size) {
-            mem.copy(u8, self.partial[0..], buf[buf_start .. buf_start + data_block_size]);
+            @memcpy(self.partial[0..data_block_size], buf[buf_start .. buf_start + data_block_size]);
             self.process_partials(digest_length);
             to_process -= data_block_size;
             buf_start += data_block_size;
@@ -61,7 +61,7 @@ const SnefruShared = struct {
 
         self.partial_bytes = to_process;
         if (self.partial_bytes > 0) {
-            mem.copy(u8, self.partial[0..self.partial_bytes], buf[buf_start .. buf_start + self.partial_bytes]);
+            @memcpy(self.partial[0..self.partial_bytes], buf[buf_start .. buf_start + self.partial_bytes]);
         }
     }
 
@@ -80,7 +80,7 @@ const SnefruShared = struct {
         ints[14 - digest_ints] = be2me_32(@truncate(self.length >> 29));
         ints[15 - digest_ints] = be2me_32(@truncate(self.length << 3));
         self.process_partials(digest_length);
-        mem.copy(u32, digest[0..], self.hash[0..]);
+        @memcpy(digest[0..], self.hash[0..]);
     }
 
     fn reset(self: *Self) void {
@@ -173,14 +173,14 @@ const Snefru128 = struct {
     pub fn make_final(self: *Self, digest: *[HASH_UNITS_128]u32) void {
         var temp_digest: [HASH_UNITS]u32 = undefined;
         self.state.make_final(&temp_digest, DIGEST_LENGTH);
-        mem.copy(u32, digest[0..], temp_digest[0..HASH_UNITS_128]);
+        @memcpy(digest[0..], temp_digest[0..HASH_UNITS_128]);
     }
 
     pub fn make_final_slice(self: *Self, allocator: Allocator) !*[HASH_UNITS_128]u32 {
         var digest: [HASH_UNITS]u32 = undefined;
         self.state.make_final(&digest, DIGEST_LENGTH);
         var result: *[HASH_UNITS_128]u32 = try allocator.create([HASH_UNITS_128]u32);
-        mem.copy(u32, result[0..HASH_UNITS_128], digest[0..HASH_UNITS_128]);
+        @memcpy(result[0..HASH_UNITS_128], digest[0..HASH_UNITS_128]);
         return result;
     }
 
@@ -205,14 +205,14 @@ const Snefru256 = struct {
     pub fn make_final(self: *Self, digest: *[HASH_UNITS_256]u32) void {
         var temp_digest: [HASH_UNITS]u32 = undefined;
         self.state.make_final(&temp_digest, DIGEST_LENGTH);
-        mem.copy(u32, digest[0..], temp_digest[0..HASH_UNITS_256]);
+        @memcpy(digest[0..], temp_digest[0..HASH_UNITS_256]);
     }
 
     pub fn make_final_slice(self: *Self, allocator: Allocator) !*[HASH_UNITS_256]u32 {
         var digest: [HASH_UNITS]u32 = undefined;
         self.state.make_final(&digest, DIGEST_LENGTH);
         var result: *[HASH_UNITS_256]u32 = try allocator.create([HASH_UNITS_256]u32);
-        mem.copy(u32, result[0..HASH_UNITS_256], digest[0..HASH_UNITS_256]);
+        @memcpy(result[0..HASH_UNITS_256], digest[0..HASH_UNITS_256]);
         return result;
     }
 
@@ -223,8 +223,8 @@ const Snefru256 = struct {
 
 fn be2me_32(input: u32) u32 {
     switch (native_endian) {
-        .Big => return input,
-        .Little => return bswap_32(input),
+        .big => return input,
+        .little => return bswap_32(input),
     }
 }
 
@@ -252,7 +252,7 @@ pub fn digest_to_hex_string_128(digest: *[HASH_UNITS_128]u32, string: *[2 * HASH
         const start = i * 8;
         const end = start + 8;
         const digest_val = digest[i];
-        _ = std.fmt.bufPrintIntToSlice(string[start..end], digest_val, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
+        _ = std.fmt.bufPrint(string[start..end], "{X:0>8}", .{digest_val}) catch {};
     }
 }
 
@@ -262,7 +262,7 @@ pub fn digest_to_hex_string_256(digest: *[HASH_UNITS_256]u32, string: *[2 * HASH
         const start = i * 8;
         const end = start + 8;
         const digest_val = digest[i];
-        _ = std.fmt.bufPrintIntToSlice(string[start..end], digest_val, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
+        _ = std.fmt.bufPrint(string[start..end], "{X:0>8}", .{digest_val}) catch {};
     }
 }
 

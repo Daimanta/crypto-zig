@@ -32,24 +32,24 @@ pub const Tiger = struct {
         self.length += message_length;
 
         if (self.datasize_in_buffer + message_length < buffer_size) {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..self.datasize_in_buffer + buf.len], buf);
             self.datasize_in_buffer += message_length;
         } else if (self.datasize_in_buffer + message_length == buffer_size) {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..], buf);
             self.process_block();
             self.datasize_in_buffer = 0;
         } else {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..], buf);
             self.process_block();
             var buf_start: u64 = 64 - self.datasize_in_buffer;
             self.datasize_in_buffer = 0;
             while (buf_start + buffer_size < message_length) : (buf_start += buffer_size) {
-                mem.copy(u8, self.buffer[0..], buf[buf_start .. buf_start + buffer_size]);
+                @memcpy(self.buffer[0..], buf[buf_start .. buf_start + buffer_size]);
                 self.process_block();
             }
             const buffer_remaining = message_length - buf_start;
             self.datasize_in_buffer = buffer_remaining;
-            mem.copy(u8, self.buffer[0..], buf[buf_start..]);
+            @memcpy(self.buffer[0..], buf[buf_start..]);
         }
     }
 
@@ -69,7 +69,7 @@ pub const Tiger = struct {
         @memset(self.buffer[index..56], 0);
         msg64[7] = self.length << 3;
         self.process_block();
-        mem.copy(u8, digest[0..], mem.asBytes(self.hash[0..]));
+        @memcpy(digest[0..], mem.asBytes(self.hash[0..]));
         return digest[0..];
     }
 
@@ -85,8 +85,8 @@ pub const Tiger = struct {
         var hash_copy: [3]u64 = undefined;
         var x: [8]u64 = undefined;
 
-        mem.copy(u64, hash_copy[0..], self.hash[0..]);
-        mem.copy(u64, x[0..], cast_buffer[0..]);
+        @memcpy(hash_copy[0..], self.hash[0..]);
+        @memcpy(x[0..], cast_buffer[0..]);
 
         pass(&hash_copy[0], &hash_copy[1], &hash_copy[2], x, 5);
         key_schedule(&x);
