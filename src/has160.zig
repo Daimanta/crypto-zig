@@ -30,12 +30,12 @@ pub const Has160 = struct {
     pub fn update(self: *Self, buf: []const u8) void {
         self.length += buf.len;
         if (buf.len + self.partial_bytes < BLOCK_SIZE) {
-            mem.copy(u8, self.partial[self.partial_bytes..], buf[0..]);
+            @memcpy(self.partial[self.partial_bytes..self.partial_bytes + buf.len], buf[0..]);
             self.partial_bytes += buf.len;
             return;
         } else {
             const taken_from_buffer = BLOCK_SIZE - self.partial_bytes;
-            mem.copy(u8, self.partial[self.partial_bytes..], buf[0..taken_from_buffer]);
+            @memcpy(self.partial[self.partial_bytes..], buf[0..taken_from_buffer]);
             self.process_partials();
             const remaining_in_buffer = buf.len - taken_from_buffer;
             if (remaining_in_buffer > 0) {
@@ -47,7 +47,8 @@ pub const Has160 = struct {
                     const fixed_size_block: [MESSAGE_UNITS]u32 = block_slice[i * MESSAGE_UNITS .. (i + 1) * MESSAGE_UNITS][0..MESSAGE_UNITS].*;
                     self.process_block(fixed_size_block);
                 }
-                mem.copy(u8, self.partial[0..], buf[taken_from_buffer + taken ..]);
+                const copy_byte_count = buf.len - (taken_from_buffer + taken);
+                @memcpy(self.partial[0..copy_byte_count], buf[taken_from_buffer + taken ..]);
                 self.partial_bytes = remaining_in_buffer - taken;
             } else {
                 self.partial_bytes = 0;
@@ -75,7 +76,7 @@ pub const Has160 = struct {
         ints[14] = @as(u32, @truncate(self.length << 3));
         ints[15] = @as(u32, @truncate(self.length >> 29));
         self.process_partials();
-        mem.copy(u32, digest[0..], self.hash[0..]);
+        @memcpy(digest[0..], self.hash[0..]);
     }
 
     // Returns a slice owned by the caller
@@ -258,7 +259,7 @@ fn digest_to_hex_string(digest: *[HASH_UNITS]u32, string: *[2 * HASH_SIZE]u8) vo
         const end = start + 8;
         const digest_val = digest[i];
         const my_num: u32 = ((digest_val & 0xFF000000) >> 24) | ((digest_val & 0x00FF0000) >> 8) | ((digest_val & 0x0000FF00) << 8) | ((digest_val & 0x000000FF) << 24);
-        _ = std.fmt.bufPrintIntToSlice(string[start..end], my_num, 16, .upper, std.fmt.FormatOptions{ .width = 8, .fill = '0' });
+        _ = std.fmt.bufPrint(string[start..end], "{X:0>8}", .{my_num}) catch unreachable;
     }
 }
 

@@ -44,24 +44,24 @@ pub const JH = struct {
         self.databitlen += message_length;
 
         if (self.datasize_in_buffer + message_length < buffer_size) {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..self.datasize_in_buffer + buf.len], buf);
             self.datasize_in_buffer += message_length;
         } else if (self.datasize_in_buffer + message_length == buffer_size) {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..], buf);
             self.F8();
             self.datasize_in_buffer = 0;
         } else {
-            mem.copy(u8, self.buffer[self.datasize_in_buffer..], buf);
+            @memcpy(self.buffer[self.datasize_in_buffer..], buf);
             self.F8();
             var buf_start: u64 = 64 - self.datasize_in_buffer;
             self.datasize_in_buffer = 0;
             while (buf_start + buffer_size < message_length) : (buf_start += buffer_size) {
-                mem.copy(u8, self.buffer[0..], buf[buf_start .. buf_start + buffer_size]);
+                @memcpy(self.buffer[0..], buf[buf_start .. buf_start + buffer_size]);
                 self.F8();
             }
             const buffer_remaining = message_length - buf_start;
             self.datasize_in_buffer = buffer_remaining;
-            mem.copy(u8, self.buffer[0..], buf[buf_start..]);
+            @memcpy(self.buffer[0..], buf[buf_start..]);
         }
     }
 
@@ -92,7 +92,8 @@ pub const JH = struct {
 
         const bytelen = self.hash_type.bitlen() / 8;
         const end_index: usize = 128 - bytelen;
-        mem.copy(u8, digest[0..], self.H[end_index..]);
+        const copy_byte_len = self.H.len - end_index;
+        @memcpy(digest[0..copy_byte_len], self.H[end_index..]);
         return digest[0..bytelen];
     }
 
@@ -123,7 +124,7 @@ pub const JH = struct {
     }
 
     fn E8(self: *Self) void {
-        mem.copy(u4, self.roundconstant[0..], roundconstant_zero[0..]);
+        @memcpy(self.roundconstant[0..], roundconstant_zero[0..]);
 
         self.E8_initialgroup();
 

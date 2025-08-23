@@ -182,8 +182,8 @@ fn gosthash_compress(h: *[SUM_INT_WIDTH]u32, m: *[SUM_INT_WIDTH]u32) void {
     var w: [8]u32 = undefined;
     var s: [8]u32 = undefined;
 
-    mem.copy(u32, &u, h[0..HASH_U32_SIZE]);
-    mem.copy(u32, &v, m[0..HASH_U32_SIZE]);
+    @memcpy(&u, h[0..HASH_U32_SIZE]);
+    @memcpy(&v, m[0..HASH_U32_SIZE]);
 
     while (i < 8) : (i += 2) {
         w[0] = u[0] ^ v[0]; // w = u xor v
