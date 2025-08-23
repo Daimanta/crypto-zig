@@ -13,19 +13,23 @@ pub fn build(b: *Builder) void {
     }
 
     const target = b.standardTargetOptions(.{});
-
-    const lib = b.addStaticLibrary(.{
-        .name = "crypto",
+    const module = b.createModule(.{
         .root_source_file = b.path("src/std.zig"),
         .optimize = .ReleaseSafe,
-        .version = .{.major = version.major, .minor = version.minor, .patch = version.patch},
         .target = target
+    });
+
+
+    const lib = b.addLibrary(.{
+        .name = "crypto",
+        .root_module = module,
+        .version = .{.major = version.major, .minor = version.minor, .patch = version.patch}
     });
     b.installArtifact(lib);
 
     const main_tests = addTests(b, &.{
-        .{.root_source_file = b.path("src/has160.zig")},
-        .{.root_source_file = b.path("src/md4.zig")},
+        .{.root_module = b.createModule(.{.root_source_file = b.path("src/has160.zig"), .optimize = .ReleaseSafe, .target = target})},
+        .{.root_module = b.createModule(.{.root_source_file = b.path("src/md4.zig"), .optimize = .ReleaseSafe, .target = target})},
     });
 
     const test_step = b.step("test", "Run library tests");
