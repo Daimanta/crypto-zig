@@ -7,9 +7,9 @@ const Builder = std.Build;
 
 pub fn build(b: *Builder) void {
     const current_zig_version = @import("builtin").zig_version;
-    if (current_zig_version.major != 0 or current_zig_version.minor < 15) {
-        std.debug.print("This project does not compile with a Zig version <0.15.x. Exiting.", .{});
-        std.os.exit(1);
+    if (current_zig_version.major != 0 or current_zig_version.minor < 16) {
+        std.debug.print("This project does not compile with a Zig version <0.16.x. Exiting.\n", .{});
+        std.process.exit(1);
     }
 
     const target = b.standardTargetOptions(.{});
